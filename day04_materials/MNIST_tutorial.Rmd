@@ -1,0 +1,123 @@
+---
+title: "Deep Learning - 2019 Class - NIA"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This Notebook introduces Deep Learning Methods implemented in R.
+
+Load Libraries and Hyperparameters:
+
+Keras - high-level neural networks API 
+      "Being able to go from idea to result with the least possible delay is key to doing good research."
+
+- Batch Size - number of observations trained on at a time
+- Number of Classes - How many outputs can we have? 10 digits
+- Epochs - The number of cycles of training
+
+```{r}
+library(rlang)
+library(tidyverse)
+
+devtools::install_github("rstudio/keras")
+library(keras)
+install_keras()   # Or: install_keras(conda = 'Path/To/conda.exe')
+
+```
+
+Load Dataset
+- Assign training and testing data:
+
+```{r}
+mnist <- dataset_mnist()
+
+x_train <- mnist$train$x
+y_train <- mnist$train$y
+x_test <- mnist$test$x
+y_test <- mnist$test$y
+```
+
+Transform Data:
+
+```{r}
+#Observations:
+# reshape
+  # From 2D array to 1D vector for each observation
+
+x_train <- array_reshape(x_train, c(nrow(x_train), 784))
+x_test <- array_reshape(x_test, c(nrow(x_test), 784))
+
+# rescale
+  # Empirically shown to improve Deep Learning Performance
+
+x_train <- x_train / 255
+x_test <- x_test / 255
+
+# Outcomes:
+  # One-hot encode numeric to categorical outcome
+  # (i.e. convert outcome to 0 and 1)
+
+y_train <- to_categorical(y_train, 10)
+y_test <- to_categorical(y_test, 10)
+```
+
+Define the Model Parameters:
+
+```{r}
+
+# Sequentially stack layers:
+model <- keras_model_sequential() 
+
+# Add layers:
+  # Dense layers: Fully connected to previous and forward layers
+  # Dropout: Ratio of nodes to hide each iteration
+  # Activation: Type of non-linear relation function of input to output of node
+model %>% 
+  layer_dense(units = 256, activation = 'relu', input_shape = c(784)) %>% 
+  layer_dropout(rate = 0.4) %>% 
+  layer_dense(units = 128, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 10, activation = 'softmax')
+
+summary(model)
+```
+
+Compile the Model:
+
+```{r}
+
+# Loss: Term to assess accuracy. Needs to be minimized
+# Optimizer: Function to shift weights in backpropogation
+
+model %>% compile(
+  loss = 'categorical_crossentropy',
+  optimizer = optimizer_rmsprop(),
+  metrics = c('accuracy')
+)
+```
+
+Train the Model:
+
+```{r}
+history <- model %>% fit(
+  x_train, y_train, 
+  epochs = 20, batch_size = 128, 
+  validation_split = 0.2
+)
+
+plot(history)
+model %>% evaluate(x_test, y_test)
+```
+
+```{r}
+model %>% predict_classes(x_test)
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
